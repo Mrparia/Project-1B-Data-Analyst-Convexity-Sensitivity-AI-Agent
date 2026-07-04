@@ -1,0 +1,487 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Bond Risk Lab</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=IBM+Plex+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --ink:#0B0E11; --panel:#12181D; --panel2:#161D23; --border:#232B32;
+    --amber:#F5A623; --amber-dim:#8A6018; --teal:#00D9A3; --crimson:#FF5A5F;
+    --text:#E8EDF1; --slate:#8B96A0; --slate-dim:#5A6570;
+  }
+  *{box-sizing:border-box;}
+  body{margin:0;background:var(--ink);color:var(--text);
+       font-family:'IBM Plex Mono',monospace;}
+  h1,h2,h3,.disp{font-family:'Space Grotesk',sans-serif;}
+  .wrap{max-width:1320px;margin:0 auto;padding:18px 18px 40px;}
+
+  /* ---- Header / Ticker ---- */
+  .hdr{display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;
+       border-bottom:1px solid var(--border);padding-bottom:14px;margin-bottom:14px;}
+  .brand{display:flex;align-items:center;gap:10px;}
+  .brand .dot{width:10px;height:10px;border-radius:50%;background:var(--teal);
+              box-shadow:0 0 8px var(--teal);animation:pulse 2s infinite;}
+  @keyframes pulse{0%,100%{opacity:1}50%{opacity:.35}}
+  .brand h1{font-size:19px;margin:0;letter-spacing:.5px;color:var(--text);font-weight:700;}
+  .brand small{color:var(--slate);font-size:11px;letter-spacing:1.5px;text-transform:uppercase;}
+  .ticker{display:flex;gap:22px;flex-wrap:wrap;font-size:12px;}
+  .ticker span{color:var(--slate);}
+  .ticker b{color:var(--amber);font-weight:600;}
+
+  /* ---- Grid Layout ---- */
+  .grid{display:grid;grid-template-columns:250px 1fr 300px;gap:14px;align-items:start;}
+  @media(max-width:1000px){.grid{grid-template-columns:1fr;}}
+
+  .panel{background:var(--panel);border:1px solid var(--border);border-radius:10px;padding:16px;}
+  .panel h2{font-size:11px;letter-spacing:1.5px;text-transform:uppercase;color:var(--slate);
+            margin:0 0 14px;font-weight:600;border-bottom:1px dashed var(--border);padding-bottom:8px;}
+
+  /* ---- Sliders ---- */
+  .ctrl{margin-bottom:18px;}
+  .ctrl label{display:flex;justify-content:space-between;font-size:12px;color:var(--text);margin-bottom:6px;}
+  .ctrl label .val{color:var(--amber);font-weight:600;}
+  input[type=range]{width:100%;-webkit-appearance:none;height:4px;background:var(--border);border-radius:2px;outline:none;}
+  input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:15px;height:15px;border-radius:50%;
+       background:var(--amber);cursor:pointer;box-shadow:0 0 6px rgba(245,166,35,.6);}
+  input[type=range]::-moz-range-thumb{width:15px;height:15px;border-radius:50%;background:var(--amber);border:none;cursor:pointer;}
+  .hint{font-size:10.5px;color:var(--slate-dim);margin-top:3px;}
+
+  .btn{width:100%;padding:11px;background:var(--amber);color:#1a1206;border:none;border-radius:6px;
+       font-family:'Space Grotesk',sans-serif;font-weight:700;font-size:13px;letter-spacing:.4px;
+       cursor:pointer;transition:transform .12s, box-shadow .12s;}
+  .btn:hover{transform:translateY(-1px);box-shadow:0 4px 14px rgba(245,166,35,.35);}
+  .btn:active{transform:translateY(0);}
+  .btn.secondary{background:transparent;color:var(--text);border:1px solid var(--border);margin-top:8px;}
+  .btn.secondary:hover{border-color:var(--amber);box-shadow:none;}
+
+  .kv{display:flex;justify-content:space-between;font-size:12px;padding:6px 0;border-bottom:1px solid var(--border);}
+  .kv:last-child{border-bottom:none;}
+  .kv .k{color:var(--slate);}
+  .kv .v{color:var(--text);font-weight:600;}
+
+  /* ---- Curve viz (signature element) ---- */
+  .curve-title{display:flex;justify-content:space-between;align-items:baseline;flex-wrap:wrap;gap:8px;}
+  .curve-title h2{margin:0;border:none;padding:0;}
+  .legend{display:flex;gap:14px;font-size:10.5px;color:var(--slate);}
+  .legend i{display:inline-block;width:10px;height:2px;margin-right:5px;vertical-align:middle;}
+  svg text{font-family:'IBM Plex Mono',monospace;}
+  .readout{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-top:14px;}
+  .readout .box{background:var(--panel2);border:1px solid var(--border);border-radius:8px;padding:10px 12px;text-align:center;}
+  .readout .box .lbl{font-size:10px;color:var(--slate);text-transform:uppercase;letter-spacing:1px;}
+  .readout .box .num{font-size:19px;font-weight:700;font-family:'Space Grotesk',sans-serif;margin-top:4px;}
+  .pos{color:var(--teal);} .neg{color:var(--crimson);}
+
+  /* ---- Waterfall ---- */
+  .wf{margin-top:16px;}
+  .wf-row{display:flex;align-items:center;gap:8px;margin-bottom:6px;font-size:11px;}
+  .wf-label{width:110px;color:var(--slate);flex-shrink:0;}
+  .wf-bar-track{flex:1;background:var(--panel2);border-radius:4px;height:16px;position:relative;overflow:hidden;}
+  .wf-bar{height:100%;border-radius:4px;transition:width .5s ease;}
+  .wf-num{width:110px;text-align:right;flex-shrink:0;font-weight:600;}
+
+  /* ---- Game panel ---- */
+  .rank-badge{text-align:center;padding:14px 8px;background:linear-gradient(160deg,var(--panel2),var(--panel));
+              border:1px solid var(--border);border-radius:10px;margin-bottom:14px;}
+  .rank-badge .tier{font-family:'Space Grotesk',sans-serif;font-weight:700;font-size:15px;color:var(--amber);}
+  .rank-badge .pts{font-size:11px;color:var(--slate);margin-top:2px;}
+  .progress{height:5px;background:var(--border);border-radius:3px;margin-top:8px;overflow:hidden;}
+  .progress-fill{height:100%;background:var(--teal);transition:width .4s;}
+
+  .streak{display:flex;justify-content:space-between;font-size:12px;margin-bottom:12px;}
+  .streak .flame{color:var(--amber);}
+
+  .scenario-box{background:var(--panel2);border:1px solid var(--border);border-radius:8px;padding:10px;margin-bottom:10px;font-size:11.5px;}
+  .scenario-box .row{display:flex;justify-content:space-between;padding:2px 0;}
+  .scenario-box .row .k{color:var(--slate);}
+
+  .guess-input{width:100%;padding:9px;background:var(--ink);border:1px solid var(--border);border-radius:6px;
+               color:var(--text);font-family:'IBM Plex Mono',monospace;font-size:13px;margin-bottom:8px;}
+  .guess-input:focus{outline:none;border-color:var(--amber);}
+
+  .feedback{border-radius:8px;padding:10px;font-size:11.5px;margin-top:10px;display:none;}
+  .feedback.show{display:block;}
+  .feedback.great{background:rgba(0,217,163,.1);border:1px solid var(--teal);}
+  .feedback.ok{background:rgba(245,166,35,.1);border:1px solid var(--amber);}
+  .feedback.miss{background:rgba(255,90,95,.1);border:1px solid var(--crimson);}
+  .feedback .fline{display:flex;justify-content:space-between;padding:2px 0;}
+
+  /* ---- Log table ---- */
+  table{width:100%;border-collapse:collapse;font-size:11px;}
+  th{text-align:right;color:var(--slate);font-weight:500;text-transform:uppercase;font-size:9.5px;
+     letter-spacing:.5px;padding:6px 8px;border-bottom:1px solid var(--border);}
+  th:first-child,td:first-child{text-align:left;}
+  td{text-align:right;padding:6px 8px;border-bottom:1px solid rgba(35,43,50,.6);}
+  tr:hover td{background:rgba(255,255,255,.02);}
+  .empty-log{color:var(--slate-dim);text-align:center;padding:18px;font-size:12px;}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <div class="hdr">
+    <div class="brand">
+      <div class="dot"></div>
+      <div>
+        <h1>BOND RISK LAB</h1>
+        <small>Convexity Sensitivity Training Desk</small>
+      </div>
+    </div>
+    <div class="ticker">
+      <span>MOD DURATION <b id="tkDur">4.2031</b> yrs</span>
+      <span>CONVEXITY <b id="tkConv">44.06</b></span>
+      <span>DV01 <b id="tkDv01">₹8,948</b></span>
+      <span>PORTFOLIO MV <b id="tkMv">₹32.06M</b></span>
+      <span>95% VaR <b id="tkVar">₹1.98M</b></span>
+    </div>
+  </div>
+
+  <div class="grid">
+
+    <!-- LEFT: Shock console -->
+    <div class="panel">
+      <h2>Shock Console</h2>
+
+      <div class="ctrl">
+        <label>Parallel Shift <span class="val" id="pVal">0 bps</span></label>
+        <input type="range" id="parallel" min="-300" max="300" value="0" step="1">
+        <div class="hint">Entire curve moves up/down uniformly</div>
+      </div>
+
+      <div class="ctrl">
+        <label>Twist (steepen/flatten) <span class="val" id="tVal">0 bps</span></label>
+        <input type="range" id="twist" min="-120" max="120" value="0" step="1">
+        <div class="hint">Long end vs short end diverge</div>
+      </div>
+
+      <div class="ctrl">
+        <label>Butterfly <span class="val" id="bVal">0 bps</span></label>
+        <input type="range" id="butterfly" min="-80" max="80" value="0" step="1">
+        <div class="hint">Belly moves relative to wings</div>
+      </div>
+
+      <button class="btn" id="applyBtn">RUN SHOCK →</button>
+      <button class="btn secondary" id="resetBtn">Reset to flat</button>
+
+      <div style="margin-top:18px;">
+        <div class="kv"><span class="k">Portfolio YTM</span><span class="v">7.281%</span></div>
+        <div class="kv"><span class="k">Effective Duration</span><span class="v">4.2038 yrs</span></div>
+        <div class="kv"><span class="k">Bonds in book</span><span class="v">300</span></div>
+        <div class="kv"><span class="k">Largest sector</span><span class="v">Govt · 57.6%</span></div>
+      </div>
+    </div>
+
+    <!-- CENTER: Convexity curve + waterfall -->
+    <div class="panel">
+      <div class="curve-title">
+        <h2>Price–Yield Curve: Duration Line vs True Convex Price</h2>
+        <div class="legend">
+          <span><i style="background:var(--slate)"></i>Duration-only (tangent)</span>
+          <span><i style="background:var(--amber)"></i>Actual (duration + convexity)</span>
+        </div>
+      </div>
+      <svg id="curveSvg" viewBox="0 0 640 300" style="width:100%;height:auto;"></svg>
+
+      <div class="readout">
+        <div class="box"><div class="lbl">Duration-only est.</div><div class="num" id="roDurOnly">0.00%</div></div>
+        <div class="box"><div class="lbl">+ Convexity correction</div><div class="num" id="roConvAdj">0.00%</div></div>
+        <div class="box"><div class="lbl">Est. P&L (INR)</div><div class="num" id="roPnl">₹0</div></div>
+      </div>
+
+      <div class="wf">
+        <div class="wf-row">
+          <div class="wf-label">Duration effect</div>
+          <div class="wf-bar-track"><div class="wf-bar" id="wfDur" style="width:0%;background:var(--slate);"></div></div>
+          <div class="wf-num" id="wfDurNum">₹0</div>
+        </div>
+        <div class="wf-row">
+          <div class="wf-label">Convexity effect</div>
+          <div class="wf-bar-track"><div class="wf-bar" id="wfConv" style="width:0%;background:var(--teal);"></div></div>
+          <div class="wf-num" id="wfConvNum">₹0</div>
+        </div>
+        <div class="wf-row">
+          <div class="wf-label">Total P&L</div>
+          <div class="wf-bar-track"><div class="wf-bar" id="wfTotal" style="width:0%;background:var(--amber);"></div></div>
+          <div class="wf-num" id="wfTotalNum">₹0</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- RIGHT: Game console -->
+    <div class="panel">
+      <h2>Analyst Console</h2>
+
+      <div class="rank-badge">
+        <div class="tier" id="rankTier">Trainee Analyst</div>
+        <div class="pts"><span id="scoreVal">0</span> pts · next tier at <span id="nextTierPts">500</span></div>
+        <div class="progress"><div class="progress-fill" id="progressFill" style="width:0%;"></div></div>
+      </div>
+
+      <div class="streak">
+        <span>Streak <span class="flame" id="streakVal">0</span> 🔥</span>
+        <span>Rounds <span id="roundsVal">0</span></span>
+      </div>
+
+      <div id="scenarioBox" class="scenario-box">
+        <b style="color:var(--text);font-size:12px;">Predict the P&L</b>
+        <div class="row"><span class="k">Parallel</span><span id="qP">—</span></div>
+        <div class="row"><span class="k">Twist</span><span id="qT">—</span></div>
+        <div class="row"><span class="k">Butterfly</span><span id="qB">—</span></div>
+      </div>
+
+      <input type="text" class="guess-input" id="guessInput" placeholder="Your P&L guess, e.g. -500000">
+      <button class="btn" id="submitGuess">SUBMIT PREDICTION</button>
+      <button class="btn secondary" id="newRound">New scenario</button>
+
+      <div class="feedback" id="feedbackBox"></div>
+    </div>
+  </div>
+
+  <div class="panel" style="margin-top:14px;">
+    <h2>Scenario Log</h2>
+    <div id="logWrap">
+      <div class="empty-log">Run a shock or submit a prediction to populate the log.</div>
+    </div>
+  </div>
+
+</div>
+
+<script>
+// ---------------------------------------------------------------
+// Portfolio constants (derived from the 300-bond book)
+// ---------------------------------------------------------------
+const PORT = { mv: 32059345.97, modDur: 4.203128, convexity: 44.061199, dv01: 8948.25 };
+
+// Empirically-fit P&L model (R²≈0.99999999) from Monte Carlo scenarios:
+// PnL ≈ a0 + a1*p + a2*p^2 + a3*t + a4*b   (p,t,b in bps)
+const FIT = { a0: -1.13, a1: -13474.996, a2: 7.06298, a3: -0.030375, a4: -0.010663 };
+function modelPnL(p, t, b){ return FIT.a0 + FIT.a1*p + FIT.a2*p*p + FIT.a3*t + FIT.a4*b; }
+
+function durationOnlyPct(p){ return -PORT.modDur * (p/10000) * 100; }
+function fullPct(p){ return (-PORT.modDur*(p/10000) + 0.5*PORT.convexity*Math.pow(p/10000,2)) * 100; }
+function fmtINR(x){
+  const sign = x<0 ? '-' : '';
+  const v = Math.abs(x);
+  if(v>=1e7) return sign+'₹'+(v/1e7).toFixed(2)+'Cr';
+  if(v>=1e5) return sign+'₹'+(v/1e5).toFixed(2)+'L';
+  return sign+'₹'+v.toLocaleString('en-IN',{maximumFractionDigits:0});
+}
+function fmtPct(x){ return (x>=0?'+':'')+x.toFixed(3)+'%'; }
+
+// ---------------------------------------------------------------
+// Embedded sample of 150 real Monte Carlo scenarios [p,t,b,pnlInr,pnlPct]
+// ---------------------------------------------------------------
+const SCENARIOS = [[-14.38, 2.58, 11.38, 195206.39, 0.61], [-21.54, 8.54, 15.17, 293535.7, 0.92], [149.35, -8.7, 2.3, -1854901.91, -5.79], [123.91, 76.51, 3.49, -1561290.86, -4.87], [-269.28, 0.67, -5.49, 4140743.21, 12.92], [10.11, 59.39, -73.25, -135459.01, -0.42], [22.95, -47.43, 22.05, -305591.43, -0.95], [80.13, 37.22, 19.53, -1034406.32, -3.23], [95.28, -72.37, -3.59, -1219827.26, -3.8], [57.47, 45.42, -22.48, -751067.4, -2.34], [77.05, 4.26, -14.69, -996328.21, -3.11], [-36.78, 87.54, -1.47, 505131.57, 1.58], [-34.39, -33.81, -1.54, 471795.21, 1.47], [-4.72, 26.67, 20.13, 63730.96, 0.2], [73.63, 34.78, -2.93, -953930.57, -2.98], [49.65, -23.82, -53.97, -651675.37, -2.03], [-106.03, -22.76, 42.12, 1508216.3, 4.7], [-17.68, 73.9, -8.51, 240472.73, 0.75], [-100.36, 25.08, 10.22, 1423473.87, 4.44], [-58.46, -19.78, 77.63, 811823.0, 2.53], [73.61, -20.86, 46.45, -953587.79, -2.97], [-20.7, -19.03, -53.96, 281952.49, 0.88], [84.04, -26.74, 15.74, -1082561.69, -3.38], [43.52, 42.58, 18.74, -573050.91, -1.79], [184.86, 6.88, -15.02, -2249592.2, -7.02], [147.08, 32.78, 53.64, -1829106.54, -5.71], [-27.59, -74.58, 11.18, 377157.74, 1.18], [83.81, 42.42, -21.14, -1079667.53, -3.37], [94.47, -55.18, 24.54, -1209996.9, -3.77], [83.33, -43.12, -79.9, -1073794.52, -3.35], [68.05, -61.72, -0.15, -884214.26, -2.76], [-71.87, -92.86, 3.3, 1004887.77, 3.13], [10.11, 45.96, 15.75, -135493.1, -0.42], [-40.33, 21.5, 14.65, 554925.19, 1.73], [9.82, -135.47, 8.13, -131609.2, -0.41], [-126.17, -101.58, 12.24, 1812569.7, 5.65], [4.01, -26.38, 35.64, -53962.87, -0.17], [133.86, -35.87, -18.39, -1677212.23, -5.23], [208.93, -25.59, 13.39, -2507018.89, -7.82], [160.7, 2.19, 60.0, -1983083.13, -6.19], [-181.98, -31.05, 38.22, 2686098.3, 8.38], [-123.21, 14.88, 12.9, 1767415.73, 5.51], [-149.93, 5.94, 34.35, 2179125.83, 6.8], [-18.88, 57.59, 63.26, 256867.15, 0.8], [-7.37, 34.82, -22.1, 99753.53, 0.31], [-100.07, 26.52, -17.31, 1419191.68, 4.43], [-85.39, -52.23, 46.65, 1202058.39, 3.75], [-16.84, -60.68, 54.88, 228866.32, 0.71], [4.17, 66.86, -6.91, -56066.8, -0.17], [-48.69, -58.74, -12.38, 672883.58, 2.1], [71.27, 0.27, 4.32, -924521.11, -2.88], [-369.78, 49.15, 6.99, 5948564.1, 18.55], [34.21, 22.51, -50.59, -452760.75, -1.41], [53.01, 30.82, 5.57, -694497.64, -2.17], [-79.44, 23.02, 42.52, 1115039.2, 3.48], [43.47, 13.11, 27.31, -572410.29, -1.79], [-40.28, 53.42, 1.46, 554256.4, 1.73], [-36.04, 53.75, 2.56, 494774.87, 1.54], [-144.87, 57.07, 7.7, 2100392.57, 6.55], [91.68, -55.44, 0.84, -1175990.78, -3.67], [-93.74, -126.88, -9.65, 1325169.33, 4.13], [-113.68, -49.77, 1.39, 1623145.14, 5.06], [-92.03, 23.2, 26.4, 1299980.5, 4.05], [58.15, 94.0, 4.43, -759745.38, -2.37], [-1.85, 49.27, -29.94, 24911.96, 0.08], [-97.95, 3.64, -10.51, 1387596.53, 4.33], [-102.32, 39.35, -9.9, 1452653.83, 4.53], [-210.36, -40.9, 43.08, 3147150.45, 9.82], [-27.46, -27.78, 22.54, 375400.71, 1.17], [-180.48, 71.41, -15.44, 2661998.3, 8.3], [-130.27, 63.9, 26.25, 1875236.07, 5.85], [15.23, 64.87, -14.9, -203584.48, -0.64], [-17.58, -43.15, -1.9, 239066.71, 0.75], [41.16, -28.26, 7.86, -542684.69, -1.69], [8.34, 43.05, 39.42, -111954.2, -0.35], [-182.01, 50.95, 79.96, 2686585.83, 8.38], [110.98, -25.83, -7.56, -1408465.67, -4.39], [-84.45, -65.03, 23.88, 1188354.24, 3.71], [147.35, 66.89, -1.05, -1832192.73, -5.72], [84.32, -24.32, 35.56, -1086010.5, -3.39], [72.14, -58.04, 6.82, -935288.95, -2.92], [-133.07, -28.12, -17.91, 1918118.82, 5.98], [-15.39, 97.96, -20.57, 208986.19, 0.65], [55.35, -10.84, -57.22, -724230.96, -2.26], [64.09, -43.19, -7.71, -834553.31, -2.6], [23.43, 39.16, 25.41, -311898.46, -0.97], [99.37, -8.06, 6.94, -1269312.92, -3.96], [157.62, -4.72, 17.38, -1948436.12, -6.08], [-82.14, -27.12, 46.73, 1154505.44, 3.6], [-145.51, 87.4, 7.69, 2110353.87, 6.58], [-85.8, 40.43, -42.63, 1208161.84, 3.77], [2.13, 65.7, -9.29, -28731.43, -0.09], [-20.59, 12.87, -27.44, 280489.31, 0.87], [-77.27, 84.13, 23.11, 1083340.48, 3.38], [-24.23, 32.11, 31.33, 330658.05, 1.03], [-130.31, 54.54, -31.63, 1875894.65, 5.85], [116.58, -26.72, 17.27, -1474947.62, -4.6], [-23.07, -18.96, 27.05, 314617.68, 0.98], [20.62, -66.48, -1.92, -274888.44, -0.86], [149.33, -49.39, 14.42, -1854706.72, -5.79], [30.88, 70.75, -6.31, -409387.13, -1.28], [-42.8, 53.51, 31.37, 589618.67, 1.84], [-13.51, 37.18, -26.14, 183295.69, 0.57], [74.48, 89.67, -3.94, -964382.86, -3.01], [37.95, -28.91, 13.15, -501239.74, -1.56], [-15.06, -11.78, 21.56, 204585.32, 0.64], [62.19, 94.98, -26.74, -810731.57, -2.53], [-42.26, 71.61, -72.92, 582000.49, 1.82], [182.07, -19.57, -12.33, -2219226.74, -6.92], [25.35, -16.83, 32.48, -337037.22, -1.05], [-145.31, 71.08, -13.41, 2107229.34, 6.57], [66.03, 17.45, 20.9, -858962.11, -2.68], [10.38, -120.08, -12.55, -139051.01, -0.43], [-175.36, -4.09, 20.43, 2580111.27, 8.05], [-9.07, -7.72, -12.54, 122852.23, 0.38], [-10.76, 17.31, 61.4, 145841.01, 0.45], [53.9, 52.36, 5.56, -705776.06, -2.2], [-3.34, -55.15, 13.65, 45112.51, 0.14], [15.12, 30.8, 25.81, -202165.74, -0.63], [250.23, 66.97, -2.63, -2929590.18, -9.14], [-43.24, -16.56, 29.18, 595873.73, 1.86], [-44.61, 118.79, 27.66, 615128.14, 1.92], [60.06, 54.44, 42.73, -783767.0, -2.44], [166.85, -54.33, -41.72, -2051620.47, -6.4], [126.6, -13.08, 70.43, -1592675.72, -4.97], [-136.34, 13.14, 2.28, 1968532.03, 6.14], [-70.15, -78.28, 19.38, 979981.03, 3.06], [199.91, -40.87, -15.71, -2411471.94, -7.52], [149.96, 70.34, 31.46, -1861888.39, -5.81], [95.6, -59.75, 18.75, -1223619.51, -3.82], [110.76, 34.09, -18.03, -1405887.47, -4.39], [-20.96, -34.48, -34.36, 285538.91, 0.89], [-150.64, -7.67, 30.43, 2190077.65, 6.83], [93.53, 3.06, -2.97, -1198509.01, -3.74], [-166.38, 4.27, 25.17, 2437521.43, 7.6], [-103.12, 33.72, -27.38, 1464692.91, 4.57], [200.74, -15.7, 0.82, -2420381.26, -7.55], [-110.32, -27.41, -17.16, 1572572.65, 4.91], [34.13, -68.95, -50.92, -451696.1, -1.41], [-170.66, -14.59, 7.93, 2505309.09, 7.81], [40.37, 67.51, -5.17, -532466.15, -1.66], [162.45, -27.0, 4.78, -2002646.27, -6.25], [-89.71, 20.4, -25.12, 1265666.22, 3.95], [103.17, -20.95, 12.24, -1314976.54, -4.1], [-69.8, 10.84, 6.19, 974930.83, 3.04], [77.64, 16.76, -10.85, -1003676.87, -3.13], [-28.05, 55.5, 1.23, 383521.9, 1.2], [96.82, 32.3, -69.16, -1238471.16, -3.86], [-76.03, 1.01, 33.98, 1065345.41, 3.32], [8.08, 38.51, -3.71, -108398.31, -0.34]];
+
+let state = { score:0, streak:0, rounds:0, current:null, log:[] };
+const TIERS = [
+  {name:'Trainee Analyst', min:0}, {name:'Associate Analyst', min:500},
+  {name:'Senior Risk Analyst', min:1500}, {name:'Chief Risk Officer', min:3000}
+];
+
+function updateRank(){
+  let tier = TIERS[0], next = TIERS[1];
+  for(let i=0;i<TIERS.length;i++){ if(state.score>=TIERS[i].min){ tier=TIERS[i]; next=TIERS[i+1]||null; } }
+  document.getElementById('rankTier').textContent = tier.name;
+  document.getElementById('scoreVal').textContent = state.score;
+  document.getElementById('streakVal').textContent = state.streak;
+  document.getElementById('roundsVal').textContent = state.rounds;
+  if(next){
+    document.getElementById('nextTierPts').textContent = next.min;
+    const pct = Math.min(100, 100*(state.score - tier.min)/(next.min - tier.min));
+    document.getElementById('progressFill').style.width = pct+'%';
+  } else {
+    document.getElementById('nextTierPts').textContent = 'MAX';
+    document.getElementById('progressFill').style.width = '100%';
+  }
+}
+
+// ---------------------------------------------------------------
+// Curve drawing (signature visual): tangent line vs true convex curve
+// ---------------------------------------------------------------
+const svg = document.getElementById('curveSvg');
+const W=640, H=300, PAD=44;
+function yToX(dy){ return PAD + (dy+300)/600*(W-2*PAD); } // dy in bps, range -300..300
+function pctToY(pct){ // pct range roughly -15..15
+  const clamped = Math.max(-16, Math.min(16, pct));
+  return H-PAD - (clamped+16)/32*(H-2*PAD);
+}
+function drawCurve(currentP){
+  let path='', tangentPath='';
+  for(let bp=-300; bp<=300; bp+=6){
+    const x = yToX(bp);
+    const yTrue = pctToY(fullPct(bp));
+    path += (bp===-300?'M':'L') + x.toFixed(1) + ' ' + yTrue.toFixed(1) + ' ';
+  }
+  // tangent through current point
+  const p0 = currentP;
+  const slope = -PORT.modDur/100; // d(pct)/d(bp) locally, since fullPct uses bp/10000
+  for(let bp=-300; bp<=300; bp+=30){
+    const x = yToX(bp);
+    const pctTangent = fullPct(p0) + (-PORT.modDur*100/10000)*(bp-p0);
+    const y = pctToY(pctTangent);
+    tangentPath += (bp===-300?'M':'L') + x.toFixed(1) + ' ' + y.toFixed(1) + ' ';
+  }
+  const zeroX = yToX(0), zeroY = pctToY(0);
+  const curX = yToX(p0), curY = pctToY(fullPct(p0));
+  const gridLines = [-300,-200,-100,0,100,200,300].map(bp=>{
+    const x=yToX(bp);
+    return `<line x1="${x}" y1="${PAD}" x2="${x}" y2="${H-PAD}" stroke="#1c242b" stroke-width="1"/>
+            <text x="${x}" y="${H-PAD+16}" fill="#5A6570" font-size="9" text-anchor="middle">${bp}</text>`;
+  }).join('');
+  svg.innerHTML = `
+    ${gridLines}
+    <line x1="${PAD}" y1="${zeroY}" x2="${W-PAD}" y2="${zeroY}" stroke="#2a333b" stroke-width="1"/>
+    <text x="${PAD-8}" y="${H-PAD+28}" fill="#5A6570" font-size="9" text-anchor="middle">bps shift</text>
+    <path d="${tangentPath}" fill="none" stroke="#8B96A0" stroke-width="1.6" stroke-dasharray="5,4"/>
+    <path d="${path}" fill="none" stroke="#F5A623" stroke-width="2.4"/>
+    <circle cx="${curX}" cy="${curY}" r="5" fill="#F5A623" stroke="#0B0E11" stroke-width="1.5"/>
+    <circle cx="${zeroX}" cy="${zeroY}" r="3.5" fill="#00D9A3"/>
+  `;
+}
+
+// ---------------------------------------------------------------
+// Apply shock -> update readouts + waterfall
+// ---------------------------------------------------------------
+function currentShocks(){
+  return {
+    p: parseFloat(document.getElementById('parallel').value),
+    t: parseFloat(document.getElementById('twist').value),
+    b: parseFloat(document.getElementById('butterfly').value)
+  };
+}
+function renderShockLabels(){
+  const s = currentShocks();
+  document.getElementById('pVal').textContent = (s.p>=0?'+':'')+s.p+' bps';
+  document.getElementById('tVal').textContent = (s.t>=0?'+':'')+s.t+' bps';
+  document.getElementById('bVal').textContent = (s.b>=0?'+':'')+s.b+' bps';
+}
+function applyShock(logIt){
+  const s = currentShocks();
+  drawCurve(s.p);
+  const durPct = durationOnlyPct(s.p);
+  const fullPctVal = fullPct(s.p);
+  const convAdj = fullPctVal - durPct;
+  document.getElementById('roDurOnly').textContent = fmtPct(durPct);
+  document.getElementById('roConvAdj').textContent = fmtPct(convAdj);
+  const pnlTotal = modelPnL(s.p, s.t, s.b);
+  document.getElementById('roPnl').textContent = fmtINR(pnlTotal);
+  document.getElementById('roPnl').className = 'num ' + (pnlTotal>=0?'pos':'neg');
+
+  const durEffectInr = durPct/100*PORT.mv;
+  const convEffectInr = convAdj/100*PORT.mv;
+  const maxAbs = Math.max(Math.abs(durEffectInr), Math.abs(convEffectInr), Math.abs(pnlTotal), 1);
+  setBar('wfDur','wfDurNum', durEffectInr, maxAbs);
+  setBar('wfConv','wfConvNum', convEffectInr, maxAbs);
+  setBar('wfTotal','wfTotalNum', pnlTotal, maxAbs);
+
+  if(logIt){
+    state.log.unshift({type:'Shock', p:s.p, t:s.t, b:s.b, pnl:pnlTotal, note:'manual'});
+    renderLog();
+  }
+}
+function setBar(barId, numId, value, maxAbs){
+  const pct = Math.min(100, Math.abs(value)/maxAbs*100);
+  const bar = document.getElementById(barId);
+  bar.style.width = pct+'%';
+  const num = document.getElementById(numId);
+  num.textContent = fmtINR(value);
+  num.className = 'wf-num ' + (value>=0?'pos':'neg');
+}
+
+['parallel','twist','butterfly'].forEach(id=>{
+  document.getElementById(id).addEventListener('input', ()=>{ renderShockLabels(); applyShock(false); });
+});
+document.getElementById('applyBtn').addEventListener('click', ()=>applyShock(true));
+document.getElementById('resetBtn').addEventListener('click', ()=>{
+  document.getElementById('parallel').value=0;
+  document.getElementById('twist').value=0;
+  document.getElementById('butterfly').value=0;
+  renderShockLabels(); applyShock(false);
+});
+
+// ---------------------------------------------------------------
+// Game: predict the P&L from a real simulated scenario
+// ---------------------------------------------------------------
+function newScenario(){
+  const idx = Math.floor(Math.random()*SCENARIOS.length);
+  const [p,t,b,pnl,pnlPct] = SCENARIOS[idx];
+  state.current = {p,t,b,pnl,pnlPct};
+  document.getElementById('qP').textContent = (p>=0?'+':'')+p+' bps';
+  document.getElementById('qT').textContent = (t>=0?'+':'')+t+' bps';
+  document.getElementById('qB').textContent = (b>=0?'+':'')+b+' bps';
+  document.getElementById('guessInput').value = '';
+  document.getElementById('feedbackBox').className = 'feedback';
+  document.getElementById('feedbackBox').innerHTML = '';
+}
+function submitGuess(){
+  if(!state.current) return;
+  const raw = document.getElementById('guessInput').value.replace(/[₹,\s]/g,'');
+  const guess = parseFloat(raw);
+  const fb = document.getElementById('feedbackBox');
+  if(isNaN(guess)){
+    fb.className='feedback show miss';
+    fb.innerHTML = '<div class="fline">Enter a numeric P&L guess (INR) to submit.</div>';
+    return;
+  }
+  const actual = state.current.pnl;
+  const err = Math.abs(guess-actual);
+  const scale = Math.max(Math.abs(actual), 200000);
+  const errPct = err/scale;
+  let pts, cls, msg;
+  if(errPct < 0.05){ pts=100; cls='great'; msg='Excellent — within 5% of the simulated outcome.'; state.streak++; }
+  else if(errPct < 0.15){ pts=60; cls='great'; msg='Strong estimate — within 15%.'; state.streak++; }
+  else if(errPct < 0.35){ pts=30; cls='ok'; msg='Reasonable, but the convexity correction mattered here.'; state.streak=0; }
+  else { pts=5; cls='miss'; msg='Off by a wide margin — recheck the duration+convexity math.'; state.streak=0; }
+  const streakBonus = Math.min(state.streak*5, 40);
+  pts += streakBonus;
+  state.score += pts;
+  state.rounds++;
+  updateRank();
+
+  const durOnlyEst = durationOnlyPct(state.current.p)/100*PORT.mv;
+  fb.className = 'feedback show '+cls;
+  fb.innerHTML = `
+    <div class="fline"><span>Your guess</span><b>${fmtINR(guess)}</b></div>
+    <div class="fline"><span>Actual (simulated)</span><b>${fmtINR(actual)}</b></div>
+    <div class="fline"><span>Duration-only would say</span><b>${fmtINR(durOnlyEst)}</b></div>
+    <div class="fline"><span>Points earned</span><b>+${pts}${streakBonus?` (incl. +${streakBonus} streak)`:''}</b></div>
+    <div style="margin-top:6px;color:var(--slate);">${msg}</div>
+  `;
+
+  state.log.unshift({type:'Guess', p:state.current.p, t:state.current.t, b:state.current.b,
+                      pnl:actual, note:`guess ${fmtINR(guess)} · ${pts>=60?'✓':pts>=30?'~':'✗'} +${pts}pt`});
+  renderLog();
+}
+function renderLog(){
+  const wrap = document.getElementById('logWrap');
+  if(state.log.length===0){ wrap.innerHTML='<div class="empty-log">Run a shock or submit a prediction to populate the log.</div>'; return; }
+  let rows = state.log.slice(0,12).map(r=>`
+    <tr>
+      <td>${r.type}</td>
+      <td>${r.p>=0?'+':''}${r.p}</td>
+      <td>${r.t>=0?'+':''}${r.t}</td>
+      <td>${r.b>=0?'+':''}${r.b}</td>
+      <td class="${r.pnl>=0?'pos':'neg'}">${fmtINR(r.pnl)}</td>
+      <td>${r.note}</td>
+    </tr>`).join('');
+  wrap.innerHTML = `<table>
+    <thead><tr><th>Type</th><th>Parallel</th><th>Twist</th><th>Butterfly</th><th>P&L</th><th>Note</th></tr></thead>
+    <tbody>${rows}</tbody></table>`;
+}
+
+document.getElementById('submitGuess').addEventListener('click', submitGuess);
+document.getElementById('newRound').addEventListener('click', newScenario);
+document.getElementById('guessInput').addEventListener('keydown', e=>{ if(e.key==='Enter') submitGuess(); });
+
+// ---------------------------------------------------------------
+// Init
+// ---------------------------------------------------------------
+renderShockLabels();
+applyShock(false);
+newScenario();
+updateRank();
+</script>
+</body>
+</html>
